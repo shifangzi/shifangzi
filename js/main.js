@@ -368,7 +368,7 @@ function analyze() {
             const jsf = jinsifangList[i];
             jinsifangWrapper.append(`<div class="fang-inner-wrapper ${i >= defaultDisplayedFang ? "hidden" : ""}" data-sequence="${i}"></div>`);
             let innerWrapper = jinsifangWrapper.children().last();
-            innerWrapper.append(`<span class="fangming" onclick="triggerSearch(this)">${jsf.name}</span><span> ${jsf.source.indexOf("《") < 0 ? "《" : ""}${jsf.source}${jsf.source.indexOf("《") < 0 ? "》" : ""} ${Math.round(jsf.percentage * 100)}%</span>`);
+            innerWrapper.append(`<span class="fangming" onclick="triggerFangSearch('${jsf.name}出自${jsf.source.replace(nonHanziRegex, "")}')">${jsf.name}</span><span> ${jsf.source.indexOf("《") < 0 ? "《" : ""}${jsf.source}${jsf.source.indexOf("《") < 0 ? "》" : ""} ${Math.round(jsf.percentage * 100)}%</span>`);
             
             let innerFangObj = fangInnerDict.find(x => x.fang == jsf.name);
             let innerYaoArr = [];
@@ -500,11 +500,6 @@ function analyze() {
 
 function triggerFangSearch(fang) {
     $("#search_input").val(fang);
-    analyze();
-}
-
-function triggerSearch(ele) {
-    $("#search_input").val($(ele).text());
     analyze();
 }
 
