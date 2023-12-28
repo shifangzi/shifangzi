@@ -1,6 +1,7 @@
 const matchThreshold = 0.75; // the percentage of Yao matched at least
 const defaultDisplayedFang = 5;
-const nonHanziRegex = /[^\u4e00-\u9fa5䗪]+/g
+const nonHanziRegex = /[^\u4e00-\u9fa5䗪]+/g;
+const fromKeyword = "出自";
 
 $(document).ready(() => {
     $("#search_input").focus();
@@ -18,16 +19,6 @@ $(document).ready(() => {
         $("#search_input").val("");
         analyze();
         $("#search_input").focus();
-    });
-
-    $("#shortcut_delete").click(function () {
-        let yaoInputList = getYaoInputArr();
-
-        if (yaoInputList.length > 0) {
-            yaoInputList.pop();
-            $("#search_input").val(yaoInputList.join(" "));
-            analyze();
-        }
     });
 
     $("#shortcut_select_all").click(function () {
@@ -81,11 +72,11 @@ $(document).ready(() => {
 
         let randomInt = getRandomInt(filteredDict.length);
         let randomFang = filteredDict[randomInt];
-        if ($("#search_fang_name").html() == randomFang.name) {
+        if ($("#search_fang_name").data("fullname") == getFangFullName(randomFang.name, randomFang.src)) {
             randomInt = (randomInt + 1) % filteredDict.length;
             randomFang = filteredDict[randomInt];
         }
-        $("#search_input").val(randomFang.name);
+        $("#search_input").val(getFangFullName(randomFang.name, randomFang.src));
 
         analyze();
         highlightYaoByYaoArr(highlightedYaoArr);
@@ -104,11 +95,8 @@ function analyze() {
     let guijingWrapper = $("#guijing_wrapper");
 
     let searchInput = $("#search_input");
-    let currentSearchInput = $("#current_search_input");
 
     if (searchInput.val().trim() == "") {
-        currentSearchInput.val("");
-
         usageWrapper.hide();
         warningMessageWrapper.empty();
         infoMessageWrapper.empty();
@@ -122,7 +110,7 @@ function analyze() {
         return;
     }
 
-    let yaoInputList = searchInput.val().replace(nonHanziRegex, ",").split(",");
+    let yaoInputList = getYaoInputArr();
 
     if (yaoInputList.length > 20) {
         warningMessageWrapper.empty();
@@ -135,7 +123,7 @@ function analyze() {
     let searchFangSrc = "";
     // Search by Fang first if there is only one input
     if (yaoInputList.length == 1) {
-        let indexOfSplit = yaoInputList[0].indexOf("出自");
+        let indexOfSplit = yaoInputList[0].indexOf(fromKeyword);
         let fangObj = indexOfSplit > 0
             ? fangDict.find(f => f.name == yaoInputList[0].substring(0, indexOfSplit) && f.src.replace(nonHanziRegex, "") == yaoInputList[0].substring(indexOfSplit + 2))
             : fangDict.find(f => f.name == yaoInputList[0]);
@@ -148,7 +136,7 @@ function analyze() {
 
         if (!!fangObj) {
             searchFangName = fangObj.name;
-            searchFangSrc = indexOfSplit > 0 ? yaoInputList[0].substring(indexOfSplit + 2) : "";
+            searchFangSrc = fangObj.src;
             yaoInputList = fangObj.arr.map(x => x.yao);
         }
     }
@@ -254,12 +242,6 @@ function analyze() {
     });
 
     searchInput.val(uniqueYaoList.join(" "));
-    if (!!searchFangName) {
-        currentSearchInput.val(searchFangName + (!!searchFangSrc ? "出自" + searchFangSrc : ""));
-    }
-    else {
-        currentSearchInput.val(uniqueYaoList.join(" "));
-    }
 
     /* 近似方 */
     fangDict.forEach(f => {
@@ -326,12 +308,12 @@ function analyze() {
     }
 
     if (!!searchFangName) {
-        infoMessageWrapper.append(`<span>查方: </span><span id="search_fang_name">${searchFangName}</span>`);
+        infoMessageWrapper.append(`<span>查方: </span><span id="search_fang_name" data-fullname="${getFangFullName(searchFangName, searchFangSrc)}">${searchFangName}</span>`);
         let fangWithSameNameObj = fangWithSameNameDict.find(x => x.fang == searchFangName);
         if (!!fangWithSameNameObj) {
             infoMessageWrapper.append(`<span>，此方有不同配伍版本</span>`);
             fangWithSameNameObj.srcArr.forEach(fwsn => {
-                infoMessageWrapper.append(`<br/><span class="fangming" onclick="triggerFangSearch('${fangWithSameNameObj.fang}出自${fwsn.replace(nonHanziRegex, "")}')">${fwsn}<span>`);
+                infoMessageWrapper.append(`<br/><span class="fangming" onclick="triggerFangSearch('${getFangFullName(fangWithSameNameObj.fang, fwsn)}')">${fwsn}<span>`);
             });
         }
         infoMessageWrapper.append("<br/>");
@@ -368,7 +350,7 @@ function analyze() {
             const jsf = jinsifangList[i];
             jinsifangWrapper.append(`<div class="fang-inner-wrapper ${i >= defaultDisplayedFang ? "hidden" : ""}" data-sequence="${i}"></div>`);
             let innerWrapper = jinsifangWrapper.children().last();
-            innerWrapper.append(`<span class="fangming" onclick="triggerFangSearch('${jsf.name}出自${jsf.source.replace(nonHanziRegex, "")}')">${jsf.name}</span><span> ${jsf.source.indexOf("《") < 0 ? "《" : ""}${jsf.source}${jsf.source.indexOf("《") < 0 ? "》" : ""} ${Math.round(jsf.percentage * 100)}%</span>`);
+            innerWrapper.append(`<span class="fangming" onclick="triggerFangSearch('${getFangFullName(jsf.name, jsf.source)}')">${jsf.name}</span><span> ${jsf.source.indexOf("《") < 0 ? "《" : ""}${jsf.source}${jsf.source.indexOf("《") < 0 ? "》" : ""} ${Math.round(jsf.percentage * 100)}%</span>`);
             
             let innerFangObj = fangInnerDict.find(x => x.fang == jsf.name);
             let innerYaoArr = [];
@@ -611,6 +593,10 @@ function getYaoInputArr() {
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * max);
+}
+
+function getFangFullName(name, src) {
+    return name + (!!src ? fromKeyword + src.replace(nonHanziRegex, "") : "");
 }
 
 function precisionRound(number, precision) {
