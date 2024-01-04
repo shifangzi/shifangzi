@@ -22,6 +22,7 @@ $(document).ready(() => {
     });
 
     $("#shortcut_select_all").click(function () {
+        analyze();
         highlightYaoByYaoArr(getYaoInputArr());
     });
 
@@ -591,12 +592,12 @@ function getYaoInputArr() {
     return $("#search_input").val().replace(nonHanziRegex, ",").split(",");
 }
 
-function getRandomInt(max) {
-    return Math.floor(Math.random() * max);
-}
-
 function getFangFullName(name, src) {
     return name + (!!src ? fromKeyword + src.replace(nonHanziRegex, "") : "");
+}
+
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
 }
 
 function precisionRound(number, precision) {
